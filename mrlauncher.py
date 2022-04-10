@@ -1,22 +1,3 @@
-# You will need both BeautifulSoup and Requests for this to work.
-# pip install beautifulsoup4
-# pip install requests
-
-# If you want to create an executable for your operational system (Windows, Mac or Linux)
-# you must install Pyinstaller on that system and compile it.
-# pip install pyinstaller
-
-# You can download a ready to use .exe for Windows from this link:
-
-# Features:
-# Check if the machine has Java installed
-# Download the game directly from the website in just one button
-# Update the client with the lastest version in just one button
-# Repair the client in case of fault download in just one button
-# Reload launcher to update informations from the website
-# Check server status
-# Show lastest release version and hotfixes news
-
 import requests
 from bs4 import BeautifulSoup
 from tkinter import *
