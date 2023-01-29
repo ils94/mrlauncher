@@ -119,35 +119,40 @@ def gather_infos():
     global version
     global download_link
 
-    start_button["state"] = "disabled"
+    try:
+        start_button["state"] = "disabled"
 
-    soup = bs4soup("https://www.miragerealms.co.uk/devblog/category/releases/")
+        soup = bs4soup("https://www.miragerealms.co.uk/devblog/category/releases/")
 
-    releases = soup.findAll('article')
+        releases = soup.findAll('article')
 
-    releases_article = str(releases[0].text).replace("Read More", "").lstrip().rstrip()
+        releases_article = str(releases[0].text).replace("Read More", "").lstrip().rstrip()
 
-    releases_link = find_links(soup, "/releases/version")
+        releases_link = find_links(soup, "-released/")
 
-    soup = bs4soup("https://www.miragerealms.co.uk/devblog/category/hotfixes/")
+        soup = bs4soup("https://www.miragerealms.co.uk/devblog/category/hotfixes/")
 
-    hotfixes = soup.findAll('article')
+        hotfixes = soup.findAll('article')
 
-    hotfix_article = str(hotfixes[0].text).replace("Read More", "").lstrip().rstrip()
+        hotfix_article = str(hotfixes[0].text).replace("Read More", "").lstrip().rstrip()
 
-    hotfix_link = find_links(soup, "/hotfixes/")
+        hotfix_link = find_links(soup, "/hotfixes/")
 
-    soup = bs4soup("https://www.miragerealms.co.uk/devblog/play/")
+        soup = bs4soup("https://www.miragerealms.co.uk/devblog/play/")
 
-    site_version = soup.find_all('h4', attrs={'elementor-heading-title elementor-size-default'})
+        site_version = soup.find_all('h4', attrs={'elementor-heading-title elementor-size-default'})
 
-    version = site_version[0].text
+        version = site_version[0].text
 
-    download_link = find_links(soup, ".jar")
+        download_link = find_links(soup, ".jar")
 
-    load_news()
-    check_version()
-    start_button["state"] = "normal"
+        load_news()
+        check_version()
+
+        start_button["state"] = "normal"
+    except Exception as e:
+        start_button["state"] = "normal"
+        error_message(e)
 
 
 def find_links(soup, string):
@@ -162,7 +167,10 @@ def find_links(soup, string):
         if string in link:
             links2.append(link)
 
-    return links2[0]
+    if len(links2) != 0:
+        return links2[0]
+    else:
+        return "No link :("
 
 
 def start_game():
@@ -184,31 +192,37 @@ def start_game():
 def download_game():
     global download_link
 
-    start_button["state"] = "disabled"
+    try:
+        start_button["state"] = "disabled"
 
-    save_version(version)
+        save_version(version)
 
-    file_name = "mr.jar"
-    with open(file_name, "wb") as f:
-        response = requests.get(download_link, stream=True)
-        total_length = response.headers.get('content-length')
+        file_name = "mr.jar"
+        with open(file_name, "wb") as f:
+            response = requests.get(download_link, stream=True)
+            total_length = response.headers.get('content-length')
 
-        if total_length is None:
-            f.write(response.content)
-        else:
-            dl = 0
-            total_length = int(total_length)
-            for data in response.iter_content(chunk_size=4096):
-                dl += len(data)
-                f.write(data)
-                done = int(50 * dl / total_length)
-                pb["value"] = done * 2
+            if total_length is None:
+                f.write(response.content)
+            else:
+                dl = 0
+                total_length = int(total_length)
+                for data in response.iter_content(chunk_size=4096):
+                    dl += len(data)
+                    f.write(data)
+                    done = int(50 * dl / total_length)
+                    pb["value"] = done * 2
 
-    pb["value"] = 0
-    label_checking["text"] = "Download complete! Game is now launching!"
-    os.startfile(file_name)
-    time.sleep(3)
-    os._exit(0)
+        pb["value"] = 0
+        label_checking["text"] = "Download complete! Game is now launching!"
+        os.startfile(file_name)
+        time.sleep(3)
+        os._exit(0)
+    except Exception as e:
+        start_button["state"] = "normal"
+        pb["value"] = 0
+        label_checking["text"] = "Error downloading the game."
+        error_message(e)
 
 
 def save_version(ver):
@@ -226,6 +240,7 @@ def load_version():
 
 def check_version():
     global is_update_to_date
+
     if os.path.isfile("version.txt"):
         if load_version() == version:
             label_checking["text"] = "The client is up to date!"
@@ -243,20 +258,24 @@ def load_news():
     global hotfix_article
     global hotfix_link
 
-    hyperlink = HyperlinkManager(text_news)
+    try:
+        hyperlink = HyperlinkManager(text_news)
 
-    text_news.delete("1.0", END)
+        text_news.delete("1.0", END)
 
-    text_news.insert("1.0", "LASTEST RELEASE VERSION:\n\n")
-    text_news.insert(END, releases_article)
-    text_news.insert(END, "\n\n" + releases_link, hyperlink.add(partial(webbrowser.open, releases_link)))
+        text_news.insert("1.0", "LASTEST RELEASE VERSION:\n\n")
+        text_news.insert(END, releases_article)
+        text_news.insert(END, "\n\n" + releases_link, hyperlink.add(partial(webbrowser.open, releases_link)))
 
-    text_news.insert(END, "\n\n------------------------------------------------------------")
-    text_news.insert(END, "\n\nLASTEST HOTFIXES:\n\n")
-    text_news.insert(END, hotfix_article)
-    text_news.insert(END, "\n\n" + hotfix_link, hyperlink.add(partial(webbrowser.open, hotfix_link)))
+        text_news.insert(END, "\n\n------------------------------------------------------------")
+        text_news.insert(END, "\n\nLASTEST HOTFIXES:\n\n")
+        text_news.insert(END, hotfix_article)
+        text_news.insert(END, "\n\n" + hotfix_link, hyperlink.add(partial(webbrowser.open, hotfix_link)))
 
-    text_news["state"] = "disabled"
+        text_news["state"] = "disabled"
+    except Exception as e:
+        text_news["state"] = "disabled"
+        error_message(e)
 
 
 root = Tk()
