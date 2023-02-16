@@ -192,11 +192,14 @@ def start_game():
 
 
 def force_start_game():
-    start_button["state"] = "disabled"
-    label_checking["text"] = "The game is launching!"
-    os.startfile("mr.jar")
-    time.sleep(3)
-    os._exit(0)
+    if os.path.isfile("mr.jar"):
+        start_button["state"] = "disabled"
+        label_checking["text"] = "The game is launching!"
+        os.startfile("mr.jar")
+        time.sleep(3)
+        os._exit(0)
+    else:
+        error_message("Couldn't start the .Jar of the game.")
 
 
 def download_game():
