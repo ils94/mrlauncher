@@ -199,7 +199,7 @@ def force_start_game():
         time.sleep(3)
         os._exit(0)
     else:
-        error_message("Couldn't start the .Jar of the game.")
+        error_message("Error starting the game file.")
 
 
 def download_game():
