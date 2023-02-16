@@ -206,7 +206,7 @@ def download_game():
     global download_link
     global version
 
-    if version:
+    if version and download_link:
         try:
             start_button["state"] = "disabled"
             save_version(version)
