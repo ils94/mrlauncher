@@ -122,6 +122,14 @@ def gather_infos():
     try:
         start_button["state"] = "disabled"
 
+        soup = bs4soup("https://www.miragerealms.co.uk/devblog/play/")
+
+        site_version = soup.find_all('h4', attrs={'elementor-heading-title elementor-size-default'})
+
+        version = site_version[0].text
+
+        download_link = find_links(soup, ".jar")
+
         soup = bs4soup("https://www.miragerealms.co.uk/devblog/category/releases/")
 
         releases = soup.findAll('article')
@@ -138,20 +146,14 @@ def gather_infos():
 
         hotfix_link = find_links(soup, "/hotfixes/")
 
-        soup = bs4soup("https://www.miragerealms.co.uk/devblog/play/")
-
-        site_version = soup.find_all('h4', attrs={'elementor-heading-title elementor-size-default'})
-
-        version = site_version[0].text
-
-        download_link = find_links(soup, ".jar")
-
         load_news()
         check_version()
 
         start_button["state"] = "normal"
     except Exception as e:
         start_button["state"] = "normal"
+        if not version:
+            start_button["text"] = "Force Start"
         error_message(e)
 
 
@@ -189,40 +191,53 @@ def start_game():
         download_game()
 
 
+def force_start_game():
+    start_button["state"] = "disabled"
+    label_checking["text"] = "The game is launching!"
+    os.startfile("mr.jar")
+    time.sleep(3)
+    os._exit(0)
+
+
 def download_game():
     global download_link
+    global version
 
-    try:
-        start_button["state"] = "disabled"
+    if version:
+        try:
+            start_button["state"] = "disabled"
+            save_version(version)
+            file_name = "mr.jar"
 
-        save_version(version)
+            with open(file_name, "wb") as f:
+                response = requests.get(download_link, stream=True)
+                total_length = response.headers.get('content-length')
 
-        file_name = "mr.jar"
-        with open(file_name, "wb") as f:
-            response = requests.get(download_link, stream=True)
-            total_length = response.headers.get('content-length')
+                if total_length is None:
+                    f.write(response.content)
+                else:
+                    dl = 0
 
-            if total_length is None:
-                f.write(response.content)
-            else:
-                dl = 0
-                total_length = int(total_length)
-                for data in response.iter_content(chunk_size=4096):
-                    dl += len(data)
-                    f.write(data)
-                    done = int(50 * dl / total_length)
-                    pb["value"] = done * 2
+                    total_length = int(total_length)
 
-        pb["value"] = 0
-        label_checking["text"] = "Download complete! Game is now launching!"
-        os.startfile(file_name)
-        time.sleep(3)
-        os._exit(0)
-    except Exception as e:
-        start_button["state"] = "normal"
-        pb["value"] = 0
-        label_checking["text"] = "Error downloading the game."
-        error_message(e)
+                    for data in response.iter_content(chunk_size=4096):
+                        dl += len(data)
+                        f.write(data)
+                        done = int(50 * dl / total_length)
+                        pb["value"] = done * 2
+
+            pb["value"] = 0
+            label_checking["text"] = "Download complete! Game is now launching!"
+            os.startfile(file_name)
+            time.sleep(3)
+            os._exit(0)
+        except Exception as e:
+            start_button["state"] = "normal"
+            pb["value"] = 0
+            label_checking["text"] = "Error downloading the game."
+            error_message(e)
+    else:
+        force_start_game()
 
 
 def save_version(ver):
@@ -298,7 +313,7 @@ menu_bar = Menu(root)
 
 menu = Menu(menu_bar, tearoff=0)
 
-menu.add_command(label="Repair Game", command=lambda: multithreading(repair_game))
+menu.add_command(label="Repair game", command=lambda: multithreading(repair_game))
 menu.add_command(label="Update server status", command=lambda: multithreading(ping_server))
 menu.add_command(label="Reload launcher", command=lambda: multithreading(gather_infos))
 
