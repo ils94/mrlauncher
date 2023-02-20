@@ -111,11 +111,7 @@ def bs4soup(link):
         error_message(e)
 
 
-def gather_infos():
-    global releases_article
-    global releases_link
-    global hotfix_article
-    global hotfix_link
+def get_version():
     global version
     global download_link
 
@@ -130,6 +126,21 @@ def gather_infos():
 
         download_link = find_links(soup, ".jar")
 
+        check_version()
+
+        start_button["state"] = "normal"
+    except Exception as e:
+        start_button["state"] = "normal"
+        if not version:
+            start_button["text"] = "Force Start"
+        error_message("Failed to get version, error: " + str(e))
+
+
+def get_releases():
+    try:
+        global releases_article
+        global releases_link
+
         soup = bs4soup("https://www.miragerealms.co.uk/devblog/category/releases/")
 
         releases = soup.findAll('article')
@@ -138,6 +149,16 @@ def gather_infos():
 
         releases_link = find_links(soup, "-released/")
 
+        load_news()
+    except Exception as e:
+        error_message("Failed to get releases, error: " + str(e))
+
+
+def get_hotfixes():
+    global hotfix_article
+    global hotfix_link
+
+    try:
         soup = bs4soup("https://www.miragerealms.co.uk/devblog/category/hotfixes/")
 
         hotfixes = soup.findAll('article')
@@ -147,14 +168,8 @@ def gather_infos():
         hotfix_link = find_links(soup, "/hotfixes/")
 
         load_news()
-        check_version()
-
-        start_button["state"] = "normal"
     except Exception as e:
-        start_button["state"] = "normal"
-        if not version:
-            start_button["text"] = "Force Start"
-        error_message(e)
+        error_message("Failed to get hotfixes, error: " + str(e))
 
 
 def find_links(soup, string):
@@ -179,7 +194,7 @@ def start_game():
     if os.path.isfile("mr.jar") and os.path.isfile("version.txt"):
         if is_update_to_date:
             start_button["state"] = "disabled"
-            label_checking["text"] = "The game is launching!"
+            label_checking["text"] = "The game is now launching!"
             os.startfile("mr.jar")
             time.sleep(3)
             os._exit(0)
@@ -244,16 +259,23 @@ def download_game():
 
 
 def save_version(ver):
-    file = open("version.txt", "w")
-    file.write(ver)
-    file.close()
+    try:
+        file = open("version.txt", "w")
+        file.write(ver)
+        file.close()
+    except Exception as e:
+        error_message("Failed saving version, error: " + str(e))
 
 
 def load_version():
-    file = open("version.txt")
-    ver = file.read()
-    file.close()
-    return ver
+    try:
+        if os.path.isfile("version.txt"):
+            file = open("version.txt")
+            ver = file.read()
+            file.close()
+            return ver
+    except Exception as e:
+        error_message("Failed loading version, error: " + str(e))
 
 
 def check_version():
@@ -276,24 +298,32 @@ def load_news():
     global hotfix_article
     global hotfix_link
 
-    try:
-        hyperlink = HyperlinkManager(text_news)
+    hyperlink = HyperlinkManager(text_news)
 
-        text_news.delete("1.0", END)
+    text_news.delete("1.0", END)
 
-        text_news.insert("1.0", "LASTEST RELEASE VERSION:\n\n")
-        text_news.insert(END, releases_article)
-        text_news.insert(END, "\n\n" + releases_link, hyperlink.add(partial(webbrowser.open, releases_link)))
+    text_news.insert("1.0", "LASTEST RELEASE VERSION:\n\n")
+    text_news.insert(END, releases_article)
+    text_news.insert(END, "\n\n" + releases_link, hyperlink.add(partial(webbrowser.open, releases_link)))
 
-        text_news.insert(END, "\n\n------------------------------------------------------------")
-        text_news.insert(END, "\n\nLASTEST HOTFIXES:\n\n")
-        text_news.insert(END, hotfix_article)
-        text_news.insert(END, "\n\n" + hotfix_link, hyperlink.add(partial(webbrowser.open, hotfix_link)))
+    text_news.insert(END, "\n\n------------------------------------------------------------")
+    text_news.insert(END, "\n\nLASTEST HOTFIXES:\n\n")
+    text_news.insert(END, hotfix_article)
+    text_news.insert(END, "\n\n" + hotfix_link, hyperlink.add(partial(webbrowser.open, hotfix_link)))
 
-        text_news["state"] = "disabled"
-    except Exception as e:
-        text_news["state"] = "disabled"
-        error_message(e)
+    text_news["state"] = "disabled"
+
+
+def startup():
+    multithreading(get_version)
+
+    multithreading(get_releases)
+
+    multithreading(get_hotfixes)
+
+    multithreading(ping_server)
+
+    multithreading(check_java)
 
 
 root = Tk()
@@ -318,7 +348,7 @@ menu = Menu(menu_bar, tearoff=0)
 
 menu.add_command(label="Repair game", command=lambda: multithreading(repair_game))
 menu.add_command(label="Update server status", command=lambda: multithreading(ping_server))
-menu.add_command(label="Reload launcher", command=lambda: multithreading(gather_infos))
+menu.add_command(label="Reload launcher", command=lambda: multithreading(startup))
 
 menu_bar.add_cascade(label="Menu", menu=menu)
 
@@ -343,10 +373,6 @@ start_button.pack(anchor=E, side="right")
 pb = ttk.Progressbar(frame, mode="determinate", length=100)
 pb.pack(fill=X, padx=5, anchor=W, side="bottom")
 
-multithreading(gather_infos)
-
-multithreading(ping_server)
-
-multithreading(check_java)
+startup()
 
 root.mainloop()
