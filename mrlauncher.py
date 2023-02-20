@@ -292,26 +292,29 @@ def check_version():
 
 
 def load_news():
-    text_news["state"] = "normal"
     global releases_article
     global releases_link
     global hotfix_article
     global hotfix_link
 
-    hyperlink = HyperlinkManager(text_news)
+    if text_news.cget("state") == "disabled":
 
-    text_news.delete("1.0", END)
+        text_news["state"] = "normal"
 
-    text_news.insert("1.0", "LASTEST RELEASE VERSION:\n\n")
-    text_news.insert(END, releases_article)
-    text_news.insert(END, "\n\n" + releases_link, hyperlink.add(partial(webbrowser.open, releases_link)))
+        hyperlink = HyperlinkManager(text_news)
 
-    text_news.insert(END, "\n\n------------------------------------------------------------")
-    text_news.insert(END, "\n\nLASTEST HOTFIXES:\n\n")
-    text_news.insert(END, hotfix_article)
-    text_news.insert(END, "\n\n" + hotfix_link, hyperlink.add(partial(webbrowser.open, hotfix_link)))
+        text_news.delete("1.0", END)
 
-    text_news["state"] = "disabled"
+        text_news.insert("1.0", "LASTEST RELEASE VERSION:\n\n")
+        text_news.insert(END, releases_article)
+        text_news.insert(END, "\n\n" + releases_link, hyperlink.add(partial(webbrowser.open, releases_link)))
+
+        text_news.insert(END, "\n\n------------------------------------------------------------")
+        text_news.insert(END, "\n\nLASTEST HOTFIXES:\n\n")
+        text_news.insert(END, hotfix_article)
+        text_news.insert(END, "\n\n" + hotfix_link, hyperlink.add(partial(webbrowser.open, hotfix_link)))
+
+        text_news["state"] = "disabled"
 
 
 def startup():
