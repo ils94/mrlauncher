@@ -82,23 +82,27 @@ def check_java():
 
 
 def ping_server():
-    try:
-        server_status["text"] = "Checking server status..."
-        server_status["fg"] = "black"
+    while True:
+        try:
+            server_status["text"] = "Checking server status..."
+            server_status["fg"] = "black"
 
-        sock = socket(AF_INET, SOCK_STREAM)
-        sock.settimeout(3.0)
+            sock = socket(AF_INET, SOCK_STREAM)
+            sock.settimeout(3.0)
 
-        connection = sock.connect_ex(("159.253.56.69", 1337))
+            connection = sock.connect_ex(("159.253.56.69", 1337))
 
-        if connection == 0:
-            server_status["text"] = "Server ON"
-            server_status["fg"] = "green"
-        else:
-            server_status["fg"] = "red"
-            server_status["text"] = "Server OFF"
-    except Exception as e:
-        error_message(e)
+            if connection == 0:
+                server_status["text"] = "Server ON"
+                server_status["fg"] = "green"
+            else:
+                server_status["fg"] = "red"
+                server_status["text"] = "Server OFF"
+        except Exception as e:
+            print(str(e))
+            server_status["text"] = "Error pinging the server."
+
+        time.sleep(30)
 
 
 def bs4soup(link):
@@ -297,8 +301,6 @@ def startup():
 
     multithreading(get_hotfixes)
 
-    multithreading(ping_server)
-
 
 root = Tk()
 
@@ -322,7 +324,6 @@ menu_bar = Menu(root)
 menu = Menu(menu_bar, tearoff=0)
 
 menu.add_command(label="Repair game", command=lambda: multithreading(repair_game))
-menu.add_command(label="Update server status", command=lambda: multithreading(ping_server))
 menu.add_command(label="Reload launcher", command=lambda: multithreading(startup))
 
 menu_bar.add_cascade(label="Menu", menu=menu)
@@ -349,6 +350,8 @@ pb = ttk.Progressbar(frame, mode="determinate", length=100)
 pb.pack(fill=X, padx=5, anchor=W, side="bottom")
 
 startup()
+
+multithreading(ping_server)
 
 multithreading(check_java)
 
