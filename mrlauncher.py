@@ -313,7 +313,8 @@ y = (screen_height / 2) - (window_height / 2)
 
 root.geometry("500x500+" + str(int(x)) + "+" + str(int(y)))
 root.title("Mirage Realms Launcher")
-root.iconbitmap("icon/miragerealms.ico")
+if os.path.isfile("icon/miragerealms.ico"):
+    root.iconbitmap("icon/miragerealms.ico")
 root.resizable(False, False)
 
 menu_bar = Menu(root)
