@@ -67,7 +67,9 @@ def repair_game():
 
     if value:
         label_checking["text"] = "Re-downloading the game, please wait..."
-        multithreading(download_game)
+        start_button["state"] = "disabled"
+        get_version()
+        download_game()
 
 
 def check_java():
@@ -116,8 +118,6 @@ def get_version():
     global download_link
 
     try:
-        start_button["state"] = "disabled"
-
         soup = bs4soup("https://www.miragerealms.co.uk/devblog/play/")
 
         site_version = soup.find_all('h4', attrs={'elementor-heading-title elementor-size-default'})
@@ -126,13 +126,7 @@ def get_version():
 
         download_link = find_links(soup, ".jar")
 
-        check_version()
-
-        start_button["state"] = "normal"
     except Exception as e:
-        start_button["state"] = "normal"
-        if not version:
-            start_button["text"] = "Force Start"
         error_message("Failed to get version, error: " + str(e))
 
 
@@ -191,13 +185,12 @@ def find_links(soup, string):
 
 
 def start_game():
+    start_button["state"] = "disabled"
+    get_version()
+
     if os.path.isfile("mr.jar") and os.path.isfile("version.txt"):
-        if is_update_to_date:
-            start_button["state"] = "disabled"
-            label_checking["text"] = "The game is now launching!"
-            os.startfile("mr.jar")
-            time.sleep(3)
-            os._exit(0)
+        if check_version():
+            open_game_client()
         else:
             label_checking["text"] = "Downloading new update, please wait..."
             download_game()
@@ -206,9 +199,8 @@ def start_game():
         download_game()
 
 
-def force_start_game():
+def open_game_client():
     if os.path.isfile("mr.jar"):
-        start_button["state"] = "disabled"
         label_checking["text"] = "The game is launching!"
         os.startfile("mr.jar")
         time.sleep(3)
@@ -245,17 +237,14 @@ def download_game():
                         pb["value"] = done * 2
 
             pb["value"] = 0
-            label_checking["text"] = "Download complete! Game is now launching!"
-            os.startfile(file_name)
-            time.sleep(3)
-            os._exit(0)
+            open_game_client()
         except Exception as e:
             start_button["state"] = "normal"
             pb["value"] = 0
             label_checking["text"] = "Error downloading the game."
             error_message(e)
     else:
-        force_start_game()
+        open_game_client()
 
 
 def save_version(ver):
@@ -267,28 +256,15 @@ def save_version(ver):
         error_message("Failed saving version, error: " + str(e))
 
 
-def load_version():
-    try:
-        if os.path.isfile("version.txt"):
-            file = open("version.txt")
-            ver = file.read()
-            file.close()
-            return ver
-    except Exception as e:
-        error_message("Failed loading version, error: " + str(e))
-
-
 def check_version():
-    global is_update_to_date
+    global version
 
     if os.path.isfile("version.txt"):
-        if load_version() == version:
-            label_checking["text"] = "The client is up to date!"
-            is_update_to_date = True
-        else:
-            label_checking["text"] = "There is a new update available!"
-    else:
-        label_checking["text"] = "The game is ready to be downloaded!"
+        file = open("version.txt")
+        ver = file.read()
+        file.close()
+        if version == ver:
+            return True
 
 
 def load_news():
@@ -298,7 +274,6 @@ def load_news():
     global hotfix_link
 
     if text_news.cget("state") == "disabled":
-
         text_news["state"] = "normal"
 
         hyperlink = HyperlinkManager(text_news)
@@ -318,15 +293,11 @@ def load_news():
 
 
 def startup():
-    multithreading(get_version)
-
     multithreading(get_releases)
 
     multithreading(get_hotfixes)
 
     multithreading(ping_server)
-
-    multithreading(check_java)
 
 
 root = Tk()
@@ -364,7 +335,7 @@ text_news = Text(root)
 text_news.pack(padx=5, fill=X)
 text_news["state"] = "disabled"
 
-label_checking = Label(root, text="Loading...", width=30, height=1)
+label_checking = Label(root, text="", width=30, height=1)
 label_checking.pack(padx=5, fill=X)
 
 frame = Frame(root)
@@ -377,5 +348,7 @@ pb = ttk.Progressbar(frame, mode="determinate", length=100)
 pb.pack(fill=X, padx=5, anchor=W, side="bottom")
 
 startup()
+
+multithreading(check_java)
 
 root.mainloop()
