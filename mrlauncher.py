@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
-from tkinter import Tk, Button, Text, messagebox, ttk, Menu, Frame, Label, X, E, W, END, CURRENT
+from tkinter import Tk, Button, Text, messagebox, ttk, Frame, Label, X, E, W, END, CURRENT, BOTH
+from tkinter.font import Font
 import threading
 from socket import socket, AF_INET, SOCK_STREAM
 import os
@@ -9,14 +10,6 @@ from os import system
 import webbrowser
 from functools import partial
 import os.path
-
-releases_article = ""
-releases_link = ""
-hotfix_article = ""
-hotfix_link = ""
-version = ""
-is_update_to_date = False
-download_link = ""
 
 
 class HyperlinkManager:
@@ -68,7 +61,6 @@ def repair_game():
     if value:
         label_checking["text"] = "Re-downloading the game, please wait..."
         start_button["state"] = "disabled"
-        get_version()
         download_game()
 
 
@@ -117,28 +109,8 @@ def bs4soup(link):
         error_message(e)
 
 
-def get_version():
-    global version
-    global download_link
-
-    try:
-        soup = bs4soup("https://www.miragerealms.co.uk/devblog/play/")
-
-        site_version = soup.find_all('h4', attrs={'elementor-heading-title elementor-size-default'})
-
-        version = site_version[0].text
-
-        download_link = find_links(soup, ".jar")
-
-    except Exception as e:
-        error_message("Failed to get version, error: " + str(e))
-
-
 def get_releases():
     try:
-        global releases_article
-        global releases_link
-
         soup = bs4soup("https://www.miragerealms.co.uk/devblog/category/releases/")
 
         releases = soup.findAll('article')
@@ -147,15 +119,12 @@ def get_releases():
 
         releases_link = find_links(soup, "-released/")
 
-        load_news()
+        return releases_article, releases_link
     except Exception as e:
-        error_message("Failed to get releases, error: " + str(e))
+        return str(e)
 
 
 def get_hotfixes():
-    global hotfix_article
-    global hotfix_link
-
     try:
         soup = bs4soup("https://www.miragerealms.co.uk/devblog/category/hotfixes/")
 
@@ -165,9 +134,9 @@ def get_hotfixes():
 
         hotfix_link = find_links(soup, "/hotfixes/")
 
-        load_news()
+        return hotfix_article, hotfix_link
     except Exception as e:
-        error_message("Failed to get hotfixes, error: " + str(e))
+        return str(e)
 
 
 def find_links(soup, string):
@@ -190,116 +159,85 @@ def find_links(soup, string):
 
 def start_game():
     start_button["state"] = "disabled"
-    get_version()
 
-    if os.path.isfile("mr.jar") and os.path.isfile("version.txt"):
-        if check_version():
-            open_game_client()
-        else:
+    if os.path.isfile("mr.jar"):
+        question = messagebox.askyesnocancel("Download new version",
+                                             "There might be a new version of the game, do you want to download it?")
+
+        question = str(question)
+
+        if question == "True":
             label_checking["text"] = "Downloading new update, please wait..."
             download_game()
+        elif question == "False":
+            open_game_client()
+        else:
+            start_button["state"] = "normal"
     else:
         label_checking["text"] = "Downloading the game, please wait..."
         download_game()
 
 
 def open_game_client():
-    if os.path.isfile("mr.jar"):
-        label_checking["text"] = "The game is launching!"
-        os.startfile("mr.jar")
-        time.sleep(3)
-        os._exit(0)
-    else:
-        error_message("Error starting the game file.")
+    label_checking["text"] = "The game is launching!"
+    os.startfile("mr.jar")
+    time.sleep(3)
+    os._exit(0)
 
 
 def download_game():
-    global download_link
-    global version
-
-    if version and download_link:
-        try:
-            start_button["state"] = "disabled"
-            save_version(version)
-            file_name = "mr.jar"
-
-            with open(file_name, "wb") as f:
-                response = requests.get(download_link, stream=True)
-                total_length = response.headers.get('content-length')
-
-                if total_length is None:
-                    f.write(response.content)
-                else:
-                    dl = 0
-
-                    total_length = int(total_length)
-
-                    for data in response.iter_content(chunk_size=4096):
-                        dl += len(data)
-                        f.write(data)
-                        done = int(50 * dl / total_length)
-                        pb["value"] = done * 2
-
-            pb["value"] = 0
-            open_game_client()
-        except Exception as e:
-            start_button["state"] = "normal"
-            pb["value"] = 0
-            label_checking["text"] = "Error downloading the game."
-            error_message(e)
-    else:
-        open_game_client()
-
-
-def save_version(ver):
     try:
-        file = open("version.txt", "w")
-        file.write(ver)
-        file.close()
+        download_link = "https://files.miragerealms.co.uk/mirage/clients/live/Mirage.jar"
+
+        start_button["state"] = "disabled"
+        file_name = "mr.jar"
+
+        with open(file_name, "wb") as f:
+            response = requests.get(download_link, stream=True)
+            total_length = response.headers.get('content-length')
+
+            if total_length is None:
+                f.write(response.content)
+            else:
+                dl = 0
+
+                total_length = int(total_length)
+
+                for data in response.iter_content(chunk_size=4096):
+                    dl += len(data)
+                    f.write(data)
+                    done = int(50 * dl / total_length)
+                    pb["value"] = done * 2
+
+        pb["value"] = 0
+        open_game_client()
     except Exception as e:
-        error_message("Failed saving version, error: " + str(e))
-
-
-def check_version():
-    global version
-
-    if os.path.isfile("version.txt"):
-        file = open("version.txt")
-        ver = file.read()
-        file.close()
-        if version == ver:
-            return True
+        start_button["state"] = "normal"
+        pb["value"] = 0
+        label_checking["text"] = "Error downloading the game."
+        error_message(e)
 
 
 def load_news():
-    global releases_article
-    global releases_link
-    global hotfix_article
-    global hotfix_link
+    hyperlink = HyperlinkManager(text_news)
 
-    if text_news.cget("state") == "disabled":
-        text_news["state"] = "normal"
+    releases = get_releases()
+    hotfixes = get_hotfixes()
 
-        hyperlink = HyperlinkManager(text_news)
+    text_news["state"] = "normal"
 
-        text_news.delete("1.0", END)
+    text_news.delete("1.0", END)
 
-        text_news.insert("1.0", "LASTEST RELEASE VERSION:\n\n")
-        text_news.insert(END, releases_article)
-        text_news.insert(END, "\n\n" + releases_link, hyperlink.add(partial(webbrowser.open, releases_link)))
+    text_news.insert("1.0", "LASTEST RELEASE VERSION:\n\n")
+    text_news.insert(END, releases[0])
+    text_news.insert(END, "\n\n" + releases[1], hyperlink.add(partial(webbrowser.open, releases[1])))
 
-        text_news.insert(END, "\n\n------------------------------------------------------------")
-        text_news.insert(END, "\n\nLASTEST HOTFIXES:\n\n")
-        text_news.insert(END, hotfix_article)
-        text_news.insert(END, "\n\n" + hotfix_link, hyperlink.add(partial(webbrowser.open, hotfix_link)))
+    text_news.insert(END, "\n\n------------------------------------------------------------")
+    text_news.insert(END, "\n\nLASTEST HOTFIXES:\n\n")
+    text_news.insert(END, hotfixes[0])
+    text_news.insert(END, "\n\n" + hotfixes[1], hyperlink.add(partial(webbrowser.open, hotfixes[1])))
 
-        text_news["state"] = "disabled"
-
-
-def startup():
-    multithreading(get_releases)
-
-    multithreading(get_hotfixes)
+    text_news["state"] = "disabled"
 
 
 root = Tk()
@@ -319,37 +257,29 @@ if os.path.isfile("icon/miragerealms.ico"):
     root.iconbitmap("icon/miragerealms.ico")
 root.resizable(False, False)
 
-menu_bar = Menu(root)
-
-menu = Menu(menu_bar, tearoff=0)
-
-menu.add_command(label="Repair game", command=lambda: multithreading(repair_game))
-menu.add_command(label="Reload launcher", command=lambda: multithreading(startup))
-
-menu_bar.add_cascade(label="Menu", menu=menu)
-
-root.config(menu=menu_bar)
-
 server_status = Label(root, text="Server status")
 server_status.pack(padx=5, anchor=E)
 
-text_news = Text(root)
-text_news.pack(padx=5, fill=X)
+text_news = Text(root, height=25)
+text_news.pack(padx=5, fill=BOTH)
+text_news.insert("1.0", "LOADING...")
 text_news["state"] = "disabled"
 
-label_checking = Label(root, text="", width=30, height=1)
+label_checking = Label(root, text="", height=1)
 label_checking.pack(padx=5, fill=X)
 
 frame = Frame(root)
 frame.pack(fill=X, padx=5)
 
-start_button = Button(frame, text="Play!", width=15, height=2, command=lambda: multithreading(start_game))
+bold_font = Font(weight="bold", size=11)
+start_button = Button(frame, text="Play!", width=15, height=2, font=bold_font,
+                      command=lambda: multithreading(start_game))
 start_button.pack(anchor=E, side="right")
 
 pb = ttk.Progressbar(frame, mode="determinate", length=100)
 pb.pack(fill=X, padx=5, anchor=W, side="bottom")
 
-startup()
+multithreading(load_news)
 
 multithreading(ping_server)
 
