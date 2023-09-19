@@ -193,7 +193,7 @@ def download_game():
         file_name = "mr.jar"
 
         with open(file_name, "wb") as f:
-            response = requests.get(download_link, stream=True)
+            response = requests.get(download_link, stream=True, verify=False)
             total_length = response.headers.get('content-length')
 
             if total_length is None:
